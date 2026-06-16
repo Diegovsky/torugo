@@ -16,6 +16,7 @@ class TokenType(Enum):
     KW_FOR = auto()
     KW_IF = auto()
     KW_RETURN = auto()
+    BOOL_LITERAL = auto()
     FLOAT_LITERAL = auto()
     INT_LITERAL = auto()
     ASSIGN = auto()
@@ -55,6 +56,7 @@ tokenizer_list: list[TokenDef] = [
     TokenDef(re.compile(r"\s+"), TokenType.WHITESPACE),
     TokenDef(re.compile(r"//.*$"), TokenType.COMMENT),
     TokenDef(re.compile(r"char|double|float|int"), TokenType.TYPE),
+    TokenDef(re.compile(r";"), TokenType.SEMICOLON),
     TokenDef(re.compile("break"), TokenType.KW_BREAK),
     TokenDef(re.compile("continue"), TokenType.KW_CONTINUE),
     TokenDef(re.compile("else"), TokenType.KW_ELSE),
@@ -62,6 +64,7 @@ tokenizer_list: list[TokenDef] = [
     TokenDef(re.compile("if"), TokenType.KW_IF),
     TokenDef(re.compile("return"), TokenType.KW_RETURN),
     TokenDef(re.compile("="), TokenType.ASSIGN),
+    TokenDef(re.compile(r"true|false"), TokenType.BOOL_LITERAL),
     TokenDef(re.compile(r"[0-9]*\.[0-9]+"), TokenType.FLOAT_LITERAL),
     TokenDef(re.compile(r"[0-9]+"), TokenType.INT_LITERAL),
     TokenDef(re.compile(r"(\+\+)|([-*/+<>])"), TokenType.OP),
@@ -72,7 +75,6 @@ tokenizer_list: list[TokenDef] = [
     TokenDef(re.compile(r"'.'"), TokenType.CHAR_LITERAL),
     TokenDef(re.compile(r'".*"'), TokenType.STRING_LITERAL),
     TokenDef(re.compile(r"[A-Za-z_][A-Za-z_0-9]*"), TokenType.IDENTIFIER),
-    TokenDef(re.compile(r";"), TokenType.SEMICOLON),
 ]
 
 

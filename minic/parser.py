@@ -52,8 +52,8 @@ class BinOp(Expr):
 
 @dataclass
 class LiteralExpr(Expr):
-    value: int | float | str
-    type: Literal["int", "float", "char", "string", "var"]
+    value: int | float | str | bool
+    type: Literal["int", "float", "char", "string", "var", "bool"]
 
 
 @dataclass
@@ -142,25 +142,29 @@ class Parser:
 
     def _simple_expr(self) -> Expr:
         tk = self.peek()
+        line = self.line
         match tk.type:
             case TokenType.OP:
                 self.next()
-                return UnOp(op=tk.text, expr=self.expr(), line=self.line)
+                return UnOp(op=tk.text, expr=self.expr(), line=line)
             case TokenType.INT_LITERAL:
                 self.next()
-                return LiteralExpr(value=int(tk.text), type="int", line=self.line)
+                return LiteralExpr(value=int(tk.text), type="int", line=line)
             case TokenType.FLOAT_LITERAL:
                 self.next()
-                return LiteralExpr(value=float(tk.text), type="float", line=self.line)
+                return LiteralExpr(value=float(tk.text), type="float", line=line)
+            case TokenType.BOOL_LITERAL:
+                self.next()
+                return LiteralExpr(value=bool(tk.text), type='bool', line=line)
             case TokenType.STRING_LITERAL:
                 self.next()
-                return LiteralExpr(value=tk.text, type="string", line=self.line)
+                return LiteralExpr(value=tk.text, type="string", line=line)
             case TokenType.CHAR_LITERAL:
                 self.next()
-                return LiteralExpr(value=tk.text, type="char", line=self.line)
+                return LiteralExpr(value=tk.text, type="char", line=line)
             case TokenType.IDENTIFIER:
                 self.next()
-                return LiteralExpr(value=tk.text, type="var", line=self.line)
+                return LiteralExpr(value=tk.text, type="var", line=line)
             case _:
                 raise ParseError(f"Got {tk}", self.line)
 
