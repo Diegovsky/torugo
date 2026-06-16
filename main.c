@@ -1,5 +1,4 @@
-{
-  x = x++ +x * c + a;
-  int a = 0;
-  a + 5;
+
+void add(void a, void b) {
+  
 }

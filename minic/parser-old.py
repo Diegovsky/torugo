@@ -1,7 +1,6 @@
 from typing import Literal
 from dataclasses import dataclass
 from .lexer import Token, TokenType, Span
-from .semantic import CType, SemanticError, UndeclaredError, AlreadyDeclaredError, InvalidVarType, VarState, Vars
 
 # parser: declaração, atribuição, condição, repetição, expressões + recuperação
 # semantico:
@@ -19,6 +18,7 @@ def is_prefix_op(op: str) -> bool:
 
 def is_postfix_op(op: str) -> bool:
     return op == "++"
+
 
 @dataclass
 class Node:
@@ -55,10 +55,11 @@ class LiteralExpr(Expr):
     value: int | float | str | bool
     type: Literal["int", "float", "char", "string", "var", "bool"]
 
+
 @dataclass
 class DeclStmt(Stmt):
     name: str
-    type: CType
+    type: str
     value: Expr | None
 
 
@@ -72,18 +73,6 @@ class AttributionStmt(Stmt):
 class Block(Stmt):
     statements: list[Stmt]
     pass
-
-@dataclass
-class Arg(Node):
-    type: CType
-    name: str
-
-@dataclass
-class FuncDef(Stmt):
-    name: str
-    type: CType
-    args: list[Arg]
-    block: Block
 
 
 @dataclass
@@ -117,22 +106,13 @@ class UnexpectedTokenError(ParseError):
 
 
 class Parser:
-    errors: list[ParseError|SemanticError]
-    warnings: list[SemanticError]
-    at: int
-    text: str
-    tokens: list[Token]
-    scopes: Vars
-    depth: int
+    errors: list[ParseError]
 
     def __init__(self, text: str, tokens: list[Token]):
         self.tokens = [token for token in tokens if token.type != TokenType.WHITESPACE]
         self.text = text
         self.at = 0
-        self.depth = 0
         self.errors = []
-        self.warnings = []
-        self.scopes = {}
 
     @property
     def line(self) -> int:
@@ -151,48 +131,6 @@ class Parser:
             raise UnexpectedTokenError(expect, token, self.line)
         self.next()
 
-    def declare(self, name: str, type: CType):
-        var = self.scopes.get(name, None)
-        if var:
-            if var.depth == self.depth:
-                self.warnings.append(AlreadyDeclaredError(line=self.line, var=name))
-            return
-
-        self.scopes[name] = VarState(
-            type=type,
-            depth=self.depth
-        )
-
-    def func_def(self) -> FuncDef:
-        type = self.type()
-        name = self.ident()
-
-        line = self.line
-
-        
-        args = []
-        self.depth += 1
-        self.expect_type(TokenType.BLOCK_BEGIN)
-        while not self.is_type(TokenType.BLOCK_END):
-            type = self.type()
-            fname = self.ident()
-
-            args.append(Arg(type=type, name=fname, line=self.line))
-            self.declare(name, type)
-
-            match self.peek().type:
-                case TokenType.COMMA:
-                    continue
-                case TokenType.BLOCK_END:
-                    break
-
-        block = self.block()
-
-        self.depth -= 1
-        return FuncDef(name=name, type=type, args=args, block=block, line=line)
-
-        
-
     def is_type(self, expect: TokenType) -> bool:
         return self.peek().type == expect
 
@@ -201,17 +139,6 @@ class Parser:
 
     def semicolon(self):
         self.expect_type(TokenType.SEMICOLON)
-
-    def type(self) -> CType:
-        type = self.peek().text
-        self.expect_type(TokenType.TYPE)
-        return CType(type.lower())
-
-    def ident(self) -> str:
-        ident = self.peek().text
-        self.expect_type(TokenType.IDENTIFIER)
-        return ident
-        
 
     def _simple_expr(self) -> Expr:
         tk = self.peek()
@@ -257,8 +184,11 @@ class Parser:
         return left
 
     def decl(self) -> DeclStmt:
-        type = self.type()
-        name = self.ident()
+        type = self.peek().text
+        self.expect_type(TokenType.TYPE)
+
+        name = self.peek().text
+        self.expect_type(TokenType.IDENTIFIER)
 
         value = None
         if self.is_type(TokenType.ASSIGN):

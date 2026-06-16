@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from typing import ClassVar, overload
+from dataclasses import dataclass, asdict
+
 from enum import auto, Enum
-from minic.parser import Expr, DeclStmt
 
 
 class CType(Enum):
@@ -8,22 +9,38 @@ class CType(Enum):
     CHAR = auto()
     FLOAT = auto()
     STRING = auto()
+    VOID = auto()
 
 
-@dataclass
+@dataclass(kw_only=True)
 class VarState:
     type: CType
-    init: bool
+    depth: int
+    init: bool = False
 
+Vars = dict[str, VarState]
 
-@dataclass
-class ScopeTable:
-    vars: dict[str, VarState]
+@dataclass(kw_only=True)
+class SemanticError:
+    msg: ClassVar[str]
+    line: int
 
-    def add(self, decl: DeclStmt):
-        self.vars[decl.name] = VarState(
-            type=CType(decl.type.upper()), init=decl.value is not None
-        )
+    def __str__(self) -> str:
+        return (self.msg.format(asdict(self)))
 
-    def init(self, name: str):
-        self.vars[name].init = True
+@dataclass(kw_only=True)
+class UndeclaredError(SemanticError):
+    var: str
+    msg = 'Undeclared variable "{var}"'
+
+@dataclass(kw_only=True)
+class AlreadyDeclaredError(SemanticError):
+    var: str
+    msg = 'Already declared variable "{var}"'
+
+@dataclass(kw_only=True)
+class InvalidVarType(SemanticError):
+    type: CType
+    msg = '{type} is not allowed as a type here'
+    
+

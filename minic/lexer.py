@@ -21,6 +21,7 @@ class TokenType(Enum):
     INT_LITERAL = auto()
     ASSIGN = auto()
     OP = auto()
+    COMMA=auto()
     BLOCK_BEGIN = auto()
     BLOCK_END = auto()
     PARENTHESES_BEGIN = auto()
@@ -55,8 +56,9 @@ class TokenDef:
 tokenizer_list: list[TokenDef] = [
     TokenDef(re.compile(r"\s+"), TokenType.WHITESPACE),
     TokenDef(re.compile(r"//.*$"), TokenType.COMMENT),
-    TokenDef(re.compile(r"char|double|float|int"), TokenType.TYPE),
+    TokenDef(re.compile(r"char|double|float|int|void"), TokenType.TYPE),
     TokenDef(re.compile(r";"), TokenType.SEMICOLON),
+    TokenDef(re.compile(r","), TokenType.COMMA),
     TokenDef(re.compile("break"), TokenType.KW_BREAK),
     TokenDef(re.compile("continue"), TokenType.KW_CONTINUE),
     TokenDef(re.compile("else"), TokenType.KW_ELSE),
