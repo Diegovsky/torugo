@@ -17,7 +17,7 @@ Op = str
 
 
 def is_bin_op(op: str) -> bool:
-    return op in "+-*/"
+    return op in "+-*/<>"
 
 
 def is_prefix_op(op: str) -> bool:
@@ -35,6 +35,12 @@ class SemanticError:
 
     def __str__(self) -> str:
         return self.msg.format(**asdict(self))
+
+
+@dataclass(kw_only=True)
+class IllegalCommandError(SemanticError):
+    command: str
+    msg = "Illegal command `{command}`"
 
 
 @dataclass(kw_only=True)
@@ -196,6 +202,7 @@ class IfStmt(Stmt):
 class Parser:
     errors: list[ParseError | SemanticError]
     warnings: list[SemanticError]
+    in_for: bool
     at: int
     text: str
     tokens: list[Token]
@@ -210,6 +217,7 @@ class Parser:
         self.errors = []
         self.warnings = []
         self.scope = {}
+        self.in_for = False
 
     @property
     def line(self) -> int:
@@ -394,9 +402,9 @@ class Parser:
             case TokenType.BLOCK_BEGIN:
                 return self.block()
             case TokenType.IDENTIFIER:
-                try:
+                if self.tokens[self.at + 1].type == TokenType.ASSIGN:
                     return self.attribution_stmt()
-                except ParseError:
+                else:
                     expr = self.expr()
                     self.semicolon()
                     return expr
@@ -410,14 +418,22 @@ class Parser:
             case TokenType.KW_BREAK:
                 self.next()
                 self.semicolon()
+                if not self.in_for:
+                    self.errors.append(
+                        IllegalCommandError(command=tk.text, line=self.line)
+                    )
                 return BreakStmt(line=self.line - 1)
 
             case TokenType.KW_CONTINUE:
                 self.next()
                 self.semicolon()
+                if not self.in_for:
+                    self.errors.append(
+                        IllegalCommandError(command=tk.text, line=self.line)
+                    )
                 return ContinueStmt(line=self.line - 1)
             case _:
-                raise ParseError(f"Got {tk}", self.line)
+                raise ParseError(f"Parsing statement, got {tk}", self.line)
 
     def if_stmt(self) -> IfStmt:
         self.expect_type(TokenType.KW_IF)
@@ -426,14 +442,16 @@ class Parser:
         self.expect_type(TokenType.PARENTHESES_END)
         with self._new_scope():
             block = self.block()
-            if self.is_type(TokenType.KW_ELSE):
-                with self._new_scope():
-                    self.next()
-                    otherwise = self.block()
 
-            return IfStmt(
-                condition=condition, block=block, otherwise=otherwise, line=self.line
-            )
+        otherwise = None
+        if self.is_type(TokenType.KW_ELSE):
+            self.next()
+            with self._new_scope():
+                otherwise = self.block()
+
+        return IfStmt(
+            condition=condition, block=block, otherwise=otherwise, line=self.line
+        )
 
     def block(self) -> Block:
         self.expect_type(TokenType.BLOCK_BEGIN)
@@ -462,7 +480,12 @@ class Parser:
 
             self.expect_type(TokenType.PARENTHESES_END)
 
-            block = self.block()
+            old_in_for = self.in_for
+            try:
+                self.in_for = True
+                block = self.block()
+            finally:
+                self.in_for = old_in_for
 
             return ForStmt(
                 decl=decl,
