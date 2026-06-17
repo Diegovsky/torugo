@@ -1,4 +1,8 @@
 
-void add(void a, void b) {
-  
+int main() {
+  int a = 10;
+}
+
+void p() {
+  int a;
 }

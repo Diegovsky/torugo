@@ -21,7 +21,7 @@ class TokenType(Enum):
     INT_LITERAL = auto()
     ASSIGN = auto()
     OP = auto()
-    COMMA=auto()
+    COMMA = auto()
     BLOCK_BEGIN = auto()
     BLOCK_END = auto()
     PARENTHESES_BEGIN = auto()
@@ -55,7 +55,7 @@ class TokenDef:
 
 tokenizer_list: list[TokenDef] = [
     TokenDef(re.compile(r"\s+"), TokenType.WHITESPACE),
-    TokenDef(re.compile(r"//.*$"), TokenType.COMMENT),
+    TokenDef(re.compile(r"//[^\n]*"), TokenType.COMMENT),
     TokenDef(re.compile(r"char|double|float|int|void"), TokenType.TYPE),
     TokenDef(re.compile(r";"), TokenType.SEMICOLON),
     TokenDef(re.compile(r","), TokenType.COMMA),
@@ -113,4 +113,9 @@ def tokenize(text: str) -> list[Token]:
                 error_start = offset
             offset += 1
 
-    return result
+    tokens = [
+        token
+        for token in result
+        if token.type not in [TokenType.WHITESPACE, TokenType.COMMENT]
+    ]
+    return tokens

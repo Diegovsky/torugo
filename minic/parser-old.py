@@ -155,7 +155,7 @@ class Parser:
                 return LiteralExpr(value=float(tk.text), type="float", line=line)
             case TokenType.BOOL_LITERAL:
                 self.next()
-                return LiteralExpr(value=bool(tk.text), type='bool', line=line)
+                return LiteralExpr(value=bool(tk.text), type="bool", line=line)
             case TokenType.STRING_LITERAL:
                 self.next()
                 return LiteralExpr(value=tk.text, type="string", line=line)
